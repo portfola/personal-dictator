@@ -1,11 +1,17 @@
 import boto3, os, hashlib
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 DOCUMENTS_BUCKET = os.getenv("DOCUMENTS_BUCKET")
 AUDIO_BUCKET = os.getenv("AUDIO_BUCKET")
 REGION = os.getenv("AWS_REGION_NAME", "us-east-2")
 
-s3 = boto3.client("s3", region_name=REGION)
+s3 = boto3.client(
+    "s3",
+    region_name=REGION,
+    endpoint_url=f"https://s3.{REGION}.amazonaws.com",
+    config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+)
 
 
 # --- Documents ---
