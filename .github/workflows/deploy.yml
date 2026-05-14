@@ -38,6 +38,9 @@ jobs:
             --function-name personal-dictator-api \
             --zip-file fileb://backend/lambda.zip
 
+          aws lambda wait function-updated \
+            --function-name personal-dictator-api
+
           aws lambda update-function-configuration \
             --function-name personal-dictator-api \
             --environment "Variables={
