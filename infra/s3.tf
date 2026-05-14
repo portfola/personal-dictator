@@ -39,6 +39,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "audio_cache" {
   rule {
     id     = "expire-audio"
     status = "Enabled"
+    filter {}
     expiration { days = 30 }
   }
 }

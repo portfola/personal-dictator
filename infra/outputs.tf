@@ -17,3 +17,11 @@ output "audio_bucket" {
 output "frontend_bucket" {
   value = aws_s3_bucket.frontend.bucket
 }
+
+output "github_deploy_role_arn" {
+  value = aws_iam_role.github_deploy.arn
+}
+
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.main.id
+}
