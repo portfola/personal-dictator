@@ -1,8 +1,8 @@
 # Personal Dictator
 
-**Your documents. Read, summarized, and discussed — in your voice.**
+**Talk with the machine about your documents.**
 
-A voice-first AI document assistant built as a cross-platform PWA. Upload your markdown files and interact with them hands-free: have them read aloud, get a spoken summary, or hold a full conversation about the content.
+A voice-first AI document assistant built as a cross-platform web app. Upload your markdown files and interact with them hands-free: have them read aloud, get a spoken summary, or hold a full conversation about the content.
 
 ---
 
@@ -130,7 +130,7 @@ All variables go in `backend/.env`.
 | `DOCUMENTS_BUCKET` | ✅ | S3 bucket name for uploaded markdown files |
 | `AUDIO_BUCKET` | ✅ | S3 bucket name for cached TTS audio |
 | `DYNAMODB_TABLE` | ✅ | DynamoDB table name |
-| `AWS_REGION_NAME` | ✅ | e.g. `us-east-1` |
+| `AWS_REGION_NAME` | ✅ | e.g. `us-east-2` |
 
 ---
 
@@ -140,7 +140,7 @@ All variables go in `backend/.env`.
 
 **1. Create Terraform state bucket:**
 ```bash
-aws s3 mb s3://personal-dictator-tfstate --region us-east-1
+aws s3 mb s3://personal-dictator-tfstate --region us-east-2
 ```
 
 **2. Create a placeholder Lambda package:**
@@ -155,19 +155,25 @@ terraform init
 terraform apply
 ```
 
+This provisions, among other things, a GitHub OIDC provider and an IAM role
+(`personal-dictator-github-deploy`) that GitHub Actions assumes at deploy
+time. No long-lived AWS keys are stored in GitHub. The role's trust policy
+is scoped to pushes on `main` of the `github_repo` variable in
+`infra/variables.tf`.
+
 **4. Add GitHub Secrets** (`Settings → Secrets → Actions`):
 
 | Secret | Value |
 |---|---|
-| `AWS_ACCESS_KEY_ID` | IAM deploy user key |
-| `AWS_SECRET_ACCESS_KEY` | IAM deploy user secret |
-| `CLOUDFRONT_DISTRIBUTION_ID` | From Terraform output |
+| `AWS_DEPLOY_ROLE_ARN` | `github_deploy_role_arn` from `terraform output` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | `cloudfront_distribution_id` from `terraform output` |
 | `ANTHROPIC_API_KEY` | Your Anthropic key |
 | `TOGETHER_API_KEY` | Your Together AI key |
 | `ELEVENLABS_API_KEY` | Your ElevenLabs key |
 | `ELEVENLABS_VOICE_ID` | Voice ID (optional) |
 
-**5. Push to `main`** — the deploy workflow fires automatically.
+**5. Push to `main`** — the deploy workflow fires automatically. GitHub
+exchanges its OIDC token for short-lived STS credentials before each run.
 
 ### CI/CD
 

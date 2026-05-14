@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 DOCUMENTS_BUCKET = os.getenv("DOCUMENTS_BUCKET")
 AUDIO_BUCKET = os.getenv("AUDIO_BUCKET")
-REGION = os.getenv("AWS_REGION_NAME", "us-east-1")
+REGION = os.getenv("AWS_REGION_NAME", "us-east-2")
 
 s3 = boto3.client("s3", region_name=REGION)
 
