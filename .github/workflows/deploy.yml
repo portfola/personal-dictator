@@ -51,7 +51,12 @@ jobs:
               DOCUMENTS_BUCKET=personal-dictator-documents,
               AUDIO_BUCKET=personal-dictator-audio-cache,
               DYNAMODB_TABLE=personal-dictator-documents,
-              AWS_REGION_NAME=us-east-2
+              AWS_REGION_NAME=us-east-2,
+              GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},
+              GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},
+              SESSION_SECRET=${{ secrets.SESSION_SECRET }},
+              ALLOWED_EMAIL=${{ secrets.ALLOWED_EMAIL }},
+              APP_BASE_URL=https://dictator.portfola.net
             }"
 
       # --- Frontend ---
