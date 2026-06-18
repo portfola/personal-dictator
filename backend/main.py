@@ -1,21 +1,39 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
+from starlette.middleware.sessions import SessionMiddleware
+
 from routes.library import router as library_router
 from routes.actions import router as actions_router
+from routes.auth import router as auth_router
+from services.auth import require_user
+
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5173").rstrip("/")
 
 app = FastAPI(title="Personal Dictator API")
 
+# Holds the transient OAuth state/nonce during the Google handshake.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET", "dev-insecure-secret"),
+    same_site="lax",
+    https_only=True,
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[APP_BASE_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(library_router)
-app.include_router(actions_router)
+# Auth routes are public; everything else requires a valid session.
+app.include_router(auth_router)
+app.include_router(library_router, dependencies=[Depends(require_user)])
+app.include_router(actions_router, dependencies=[Depends(require_user)])
 
 @app.get("/api/health")
 def health():

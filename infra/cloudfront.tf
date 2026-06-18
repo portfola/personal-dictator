@@ -9,6 +9,7 @@ resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
+  aliases             = [var.domain_name]
 
   # Frontend origin (S3)
   origin {
@@ -51,7 +52,7 @@ resource "aws_cloudfront_distribution" "main" {
     forwarded_values {
       query_string = true
       headers      = ["Authorization", "Content-Type"]
-      cookies { forward = "none" }
+      cookies { forward = "all" }
     }
     min_ttl     = 0
     default_ttl = 0
@@ -60,9 +61,9 @@ resource "aws_cloudfront_distribution" "main" {
 
   # SPA fallback — all 404s → index.html
   custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   restrictions {
@@ -70,7 +71,9 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.cdn.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = { Project = var.project }

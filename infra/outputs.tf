@@ -1,3 +1,7 @@
+output "app_url" {
+  value = "https://${var.domain_name}"
+}
+
 output "cloudfront_url" {
   value = "https://${aws_cloudfront_distribution.main.domain_name}"
 }
