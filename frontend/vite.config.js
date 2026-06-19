@@ -9,6 +9,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // Don't let the SPA navigation fallback swallow API navigations
+        // (e.g. /api/auth/login and the /api/auth/callback redirect) —
+        // those must reach the backend, not be served index.html.
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Personal Dictator',
         short_name: 'Dictator',
