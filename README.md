@@ -211,4 +211,6 @@ Running at personal/hobby scale:
 
 ## License
 
-MIT
+Copyright (C) 2026 Rindy Portfolio (@portfola)
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for the full text.
