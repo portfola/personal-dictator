@@ -30,13 +30,21 @@ jobs:
           cd backend
           pip install -r requirements.txt -t package/
           cp -r *.py routes/ services/ models/ package/
-          cd package && zip -r ../lambda.zip . && cd ..
+          # boto3/botocore/s3transfer are provided by the Lambda runtime — drop
+          # them (and bytecode/metadata) to keep the package under the limit.
+          rm -rf package/boto3 package/botocore package/s3transfer
+          find package -type d -name "__pycache__" -prune -exec rm -rf {} +
+          cd package && zip -rq ../lambda.zip . && cd ..
 
       - name: Deploy Lambda
         run: |
+          # Upload via S3 to avoid the ~70 MB UpdateFunctionCode request limit.
+          aws s3 cp backend/lambda.zip s3://personal-dictator-frontend/_deploy/lambda.zip
+
           aws lambda update-function-code \
             --function-name personal-dictator-api \
-            --zip-file fileb://backend/lambda.zip
+            --s3-bucket personal-dictator-frontend \
+            --s3-key _deploy/lambda.zip
 
           aws lambda wait function-updated \
             --function-name personal-dictator-api
