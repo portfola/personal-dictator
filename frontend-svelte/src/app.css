@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+
+/* The UI is dark throughout (slate-950 surfaces); declare it so form controls and
+   scrollbars match. The old React index.css carried portfolio-template cruft
+   (#root width: 1126px, border-inline, centering) that actively fought this
+   layout — intentionally dropped. */
+html {
+	color-scheme: dark;
+}
+
+body {
+	margin: 0;
+}

@@ -29,7 +29,10 @@ export default function Library() {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold tracking-tight">Personal Dictator</h1>
+          <div className="flex items-center gap-2">
+            <img src="/favicon.svg" alt="" className="w-7 h-7" />
+            <h1 className="text-xl font-semibold tracking-tight">Personal Dictator</h1>
+          </div>
           <div className="flex items-center gap-3">
             <ProviderToggle />
             <label className="flex items-center gap-2 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 rounded-lg text-sm font-medium cursor-pointer transition-colors">
