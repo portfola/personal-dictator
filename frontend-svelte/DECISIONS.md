@@ -28,8 +28,9 @@ SvelteKit *is* the idiom. **Decided.**
 ## Q2 — adapter-static (SPA) vs. SPA-fallback vs. SSR ✅ (locked: adapter-static SPA)
 
 **Options**
-- **adapter-static, SPA mode** (`fallback: '200.html'`, `ssr=false`) — one static
-  shell, hydrate, fetch. *Chosen in the scaffold.*
+- **adapter-static, SPA mode** (`fallback: 'index.html'`, `ssr=false`) — one static
+  shell, hydrate, fetch. *Chosen in the scaffold; the scaffold's default `200.html`
+  was switched to `index.html` to match CloudFront — see MIGRATION.md §6.*
 - **adapter-static, prerendered pages** — prerender real HTML per route at build.
 - **SSR** (adapter-node / a Lambda adapter) — render on a server per request.
 
@@ -122,8 +123,9 @@ React app used `vite-plugin-pwa` (autoUpdate, manifest, API-navigation denylist)
 
 **Recommendation: defer to the end.** It's additive and slightly fiddly with the
 `/api/*` navigation denylist. Get functional parity first, then re-add as a final
-step. **Done** — see MIGRATION.md §7. One inherited gap remains: the manifest's PNG
-icons never existed in the React app and still need to be added to `static/`.
+step. **Done** — see MIGRATION.md §7. The previously-missing PWA icons
+(`icon-192.png`, `icon-512.png`) have since been added to `static/`, closing the
+last inherited gap.
 
 ---
 

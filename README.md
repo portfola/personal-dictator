@@ -21,7 +21,7 @@ Switch between **Anthropic Claude** and **Together AI (Llama 3)** on the fly via
 ## Architecture
 
 ```
-Browser (React PWA)
+Browser (Svelte PWA)
     │
     │ HTTPS
     ▼
@@ -38,7 +38,7 @@ API Gateway → Lambda (FastAPI + Mangum)
 
 **Stack at a glance:**
 
-- **Frontend:** React + Vite PWA, Tailwind CSS, Framer Motion, Lucide React
+- **Frontend:** Svelte 5 + SvelteKit (`adapter-static`, SPA) PWA, Tailwind CSS, Lucide. _(Migrating from React — the legacy React app still lives in `frontend/` until cutover; see below.)_
 - **Backend:** FastAPI (Python) + Mangum (AWS Lambda adapter)
 - **AI:** Anthropic Claude (default) or Together AI — switchable in the UI
 - **TTS:** ElevenLabs API — audio cached in S3, served via presigned URLs
@@ -66,7 +66,21 @@ personal-dictator/
 │   │   ├── storage.py           # S3 document operations
 │   │   └── parser.py            # MD → sections
 │   └── tests/
-├── frontend/
+├── frontend-svelte/             # Svelte 5 + SvelteKit app (deploy target)
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── +layout.svelte    # auth gate
+│   │   │   └── +page.svelte      # library page
+│   │   ├── lib/
+│   │   │   ├── api.js
+│   │   │   ├── provider.svelte.js / auth.svelte.js   # runes-in-module state
+│   │   │   ├── speech.svelte.js  # Web Speech API wrapper
+│   │   │   └── components/       # DocRow, ActionCard, DiscussModal, ModeToggle, ProviderToggle
+│   │   └── app.html
+│   ├── MIGRATION.md             # idiomatic Svelte choice + React equivalent per component
+│   ├── DECISIONS.md             # open questions / non-mechanical forks
+│   └── vite.config.js
+├── frontend/                    # Legacy React app — retained for comparison until cutover
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── api.js
@@ -81,8 +95,8 @@ personal-dictator/
 │   └── vite.config.js
 ├── infra/                       # Terraform: Lambda, API GW, DynamoDB, S3, CloudFront
 ├── .github/workflows/
-│   ├── test.yml                 # on PR: pytest + lint
-│   └── deploy.yml               # on push to main: build + deploy
+│   ├── test.yml                 # on PR: pytest + lint (frontend/)
+│   └── deploy.yml               # on push to main: build frontend-svelte/ + deploy
 └── docs/plans/
 ```
 
@@ -105,13 +119,17 @@ uvicorn main:app --reload --port 8000
 
 ### Frontend
 
+The frontend is mid-migration from React to Svelte. New work goes in `frontend-svelte/`, which is also what production deploys.
+
 ```bash
-cd frontend
+cd frontend-svelte   # Svelte 5 + SvelteKit (deploy target)
 npm install
 npm run dev   # proxies /api → localhost:8000
 ```
 
-The frontend dev server proxies `/api/*` to the local FastAPI backend, so no CORS configuration is needed during development.
+The legacy React app under `frontend/` is still runnable (`cd frontend && npm install && npm run dev`) for side-by-side comparison until cutover.
+
+Either dev server proxies `/api/*` to the local FastAPI backend, so no CORS configuration is needed during development.
 
 ---
 
@@ -177,8 +195,8 @@ exchanges its OIDC token for short-lived STS credentials before each run.
 
 ### CI/CD
 
-- **`test.yml`** — runs on every PR: `pytest` + lint
-- **`deploy.yml`** — runs on push to `main`: builds frontend, packages Lambda, deploys via AWS CLI, invalidates CloudFront cache
+- **`test.yml`** — runs on every PR: `pytest` + lint (currently lints the React app in `frontend/`)
+- **`deploy.yml`** — runs on push to `main`: builds the Svelte app in `frontend-svelte/` (Node 22), packages Lambda, deploys via AWS CLI, invalidates CloudFront cache
 
 ---
 
