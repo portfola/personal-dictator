@@ -14,7 +14,7 @@ app stays runnable for side-by-side comparison until we flip the deploy.
 | React app | Svelte app |
 |---|---|
 | `main.jsx` mounts `<App/>` into `#root` | SvelteKit owns the mount; `app.html` is the shell |
-| `App.jsx` is a client-side auth gate | `src/routes/+layout.svelte` (next milestone) |
+| `App.jsx` is a client-side auth gate | `src/routes/+layout.svelte` (done — §5) |
 | `Library.jsx` is the only "page" | `src/routes/+page.svelte` |
 | `react-router-dom` (installed, **never used**) | SvelteKit file-based routing |
 | Vite SPA, no server | adapter-static SPA, no server |
@@ -53,10 +53,12 @@ state it read changes. The skill to unlearn is dependency bookkeeping.
 ## 2. Adapter & app shell (done)
 
 - **`adapter-static` in SPA mode** — `vite.config.js` sets
-  `adapter({ fallback: '200.html' })`. The build emits a single hydratable shell
-  (`build/200.html`) that every unmatched path resolves to. That's exactly what
-  CloudFront already does (`404 → /index.html`, `infra/cloudfront.tf:63`), so the
-  deploy story barely changes (see DECISIONS.md Q2 and §"Deploy" below).
+  `adapter({ fallback: 'index.html' })`. The build emits a single hydratable shell
+  (`build/index.html`) that every unmatched path resolves to. We name it
+  `index.html` rather than the scaffold's common `200.html` so it lines up with
+  what CloudFront already serves (`default_root_object` + `404 → /index.html`,
+  `infra/cloudfront.tf`), so the deploy story barely changes — zero infra edits
+  (see DECISIONS.md Q2 and §"Deploy" below for the correction rationale).
 - **`src/routes/+layout.js`** sets `export const ssr = false` and
   `export const prerender = false`. This is the explicit form of "it's a client
   SPA." It also means **`localStorage` and `window` are always available** — no
@@ -126,9 +128,9 @@ ceremony without the SSR payoff. Components fetch in `onMount`/`$effect` with
 
 ---
 
-## 5. Component migration
+## 5. Component migration (done)
 
-> _Pending — next milestone. Each component gets a row here as it lands._
+> _All components ported. Each row links to its write-up below._
 
 | React component | Svelte file | Status |
 |---|---|---|
@@ -326,8 +328,7 @@ adapter-static. So registration is wired by hand:
 - `src/app.d.ts` references `vite-plugin-pwa/svelte` + `/info` so `svelte-check`
   resolves the `virtual:` modules.
 
-> **Known gap (inherited from React):** the manifest points at `/icon-192.png` and
-> `/icon-512.png`, which **never existed in the React app either** — they're not in
-> the old `public/`. Install still works but without a custom icon. To fully fix,
-> drop real 192×192 and 512×512 PNGs into `frontend-svelte/static/`. Not
-> fabricated here. `favicon.svg` was carried over to `static/` for parity.
+> **Resolved:** the manifest points at `/icon-192.png` and `/icon-512.png`, which
+> **never existed in the React app** (absent from the old `public/`). Real 192×192
+> and 512×512 PNGs now live in `frontend-svelte/static/`, so installs get a proper
+> icon. `favicon.svg` was carried over to `static/` for parity.

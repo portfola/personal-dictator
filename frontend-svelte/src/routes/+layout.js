@@ -1,6 +1,6 @@
 // SPA mode. Render entirely on the client: there is no server runtime, and every
 // view depends on the session cookie + live API calls, so SSR/prerender buy us
-// nothing. adapter-static emits the 200.html fallback shell; `ssr = false` makes
+// nothing. adapter-static emits the index.html fallback shell; `ssr = false` makes
 // that shell hydrate and then fetch.
 //
 // React equivalent: there was no server at all (Vite SPA). This file just makes

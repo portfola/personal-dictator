@@ -21,6 +21,19 @@ pytest tests/test_ai.py -v   # single file
 ```
 
 ### Frontend
+
+> **Migration in progress:** the frontend is being rewritten from React to Svelte 5 + SvelteKit. Two apps currently coexist — `frontend-svelte/` (Svelte, the deploy target) and `frontend/` (React, kept for comparison until cutover). Do new frontend work in `frontend-svelte/`.
+
+Svelte app (`frontend-svelte/`, ships to production):
+```bash
+cd frontend-svelte
+npm install
+npm run dev       # vite dev — proxies /api → localhost:8000
+npm run build     # adapter-static, SPA mode → build/
+npm run check     # svelte-check (type/template check; there is no `lint` script)
+```
+
+React app (`frontend/`, legacy — retained for comparison):
 ```bash
 cd frontend
 npm install
@@ -34,7 +47,7 @@ npm run lint
 Voice-first AI document assistant. Users upload markdown files; the app reads them aloud, summarizes them, or holds a spoken conversation about them.
 
 ```
-Browser (React PWA)
+Browser (Svelte PWA)
     │ /api/*
 API Gateway → Lambda (FastAPI + Mangum)
                     │
@@ -63,13 +76,29 @@ API Gateway → Lambda (FastAPI + Mangum)
 - Chat messages: `pk=SESSION#{session_id}`, `sk=MSG#{iso_timestamp}#{msg_id}`
 - GSI `type-updatedAt-index` uses `gsi1pk` / `gsi1sk` — used to list all docs sorted by recency.
 
-### Frontend
+### Frontend (Svelte — `frontend-svelte/`, current target)
 
-- `src/api.js` — all `fetch` calls to `/api/*`, single source of truth for API shape.
-- `src/pages/Library.jsx` — main page: lists documents, hosts `ActionCard` and `DiscussModal`.
-- `src/hooks/useSpeechInput.js` — wraps the browser Web Speech API for voice input in discuss mode.
+Svelte 5 + SvelteKit with `adapter-static` in SPA mode. Idiomatic Svelte 5 throughout — runes (`$state`/`$derived`/`$effect`/`$props`) and runes-in-module for shared state instead of React Context.
+
+- `src/lib/api.js` — all `fetch` calls to `/api/*`, single source of truth for API shape.
+- `src/routes/+page.svelte` — main page: lists documents, hosts `ActionCard` and `DiscussModal`.
+- `src/routes/+layout.svelte` / `+layout.js` — client-side auth gate (cookie-session, unchanged).
+- `src/lib/provider.svelte.js` / `auth.svelte.js` — runes-in-module shared state (replaces React Context).
+- `src/lib/speech.svelte.js` — wraps the browser Web Speech API for voice input in discuss mode.
+- `src/lib/components/` — `ActionCard`, `DiscussModal`, `DocRow`, `ModeToggle`, `ProviderToggle`.
+- Svelte built-ins replace React-era deps: CSS `@keyframes` + `transition:` for framer-motion, `crypto.randomUUID()` for uuid. Only `@lucide/svelte` and `@vite-pwa/sveltekit` are added.
+- PWA via `@vite-pwa/sveltekit` with an `/api/*` navigation denylist and manual SW registration (adapter-static owns the HTML).
 - Tailwind CSS v4 (via `@tailwindcss/vite` plugin — no `tailwind.config.js` needed).
-- Provider toggle (Anthropic vs. Together AI) is a UI-level state passed as `provider` in every action request body.
+- Provider toggle (Anthropic vs. Together AI) is UI-level state passed as `provider` in every action request body.
+- See `frontend-svelte/MIGRATION.md` (idiomatic choice + React equivalent per component) and `DECISIONS.md` for the rationale behind every non-mechanical fork.
+
+### Frontend (React — `frontend/`, legacy, pending removal)
+
+The original React 19 SPA, retained only for side-by-side comparison until the Svelte app is browser-verified; cutover (delete `frontend/`, rename `frontend-svelte/` → `frontend/`) is deferred.
+
+- `src/api.js` — all `fetch` calls to `/api/*`.
+- `src/pages/Library.jsx` — main page, hosting `ActionCard` and `DiscussModal`.
+- `src/hooks/useSpeechInput.js` — wraps the browser Web Speech API for voice input.
 
 ### Infra
 
@@ -77,8 +106,8 @@ Terraform in `infra/` manages Lambda, API Gateway, DynamoDB, S3 (two buckets: do
 
 ### CI/CD
 
-- `test.yml` — runs on PRs: `pytest` + lint.
-- `deploy.yml` — runs on push to `main`: builds frontend, packages Lambda zip, deploys via AWS CLI, invalidates CloudFront.
+- `test.yml` — runs on PRs: `pytest` + lints the React app in `frontend/`. (Not yet updated for the Svelte app — a migration follow-up.)
+- `deploy.yml` — runs on push to `main`: builds the **Svelte** app in `frontend-svelte/` (Node 22) and syncs `build/` to S3 with PWA-aware cache-control, packages the Lambda zip, deploys via AWS CLI, invalidates CloudFront. No Terraform changes were needed — the SPA fallback emits `index.html` to match existing CloudFront 404 behavior.
 
 ## Environment Variables
 
