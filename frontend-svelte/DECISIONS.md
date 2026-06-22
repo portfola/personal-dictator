@@ -1,4 +1,4 @@
-# DECISIONS.md — Questions for Mike
+# DECISIONS.md
 
 Forks where reasonable engineers disagree. Each has options, tradeoffs, and my
 recommendation. These are conversation starters, not settled law — push back.
