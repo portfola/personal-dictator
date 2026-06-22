@@ -29,8 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Install and lint
+      - name: Install and check
         run: |
-          cd frontend
+          cd frontend-svelte
           npm ci
-          npm run lint
+          npm run check
