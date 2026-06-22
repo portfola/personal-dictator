@@ -196,7 +196,7 @@ exchanges its OIDC token for short-lived STS credentials before each run.
 ### CI/CD
 
 - **`test.yml`** — runs on every PR: `pytest` + lint (currently lints the React app in `frontend/`)
-- **`deploy.yml`** — runs on push to `main`: builds the Svelte app in `frontend-svelte/` (Node 22), packages Lambda, deploys via AWS CLI, invalidates CloudFront cache
+- **`deploy.yml`** — runs on push to `main`: builds the Svelte app in `frontend-svelte/` (Node 24 / npm 11), packages Lambda, deploys via AWS CLI, invalidates CloudFront cache
 
 ---
 

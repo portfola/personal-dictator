@@ -160,3 +160,27 @@ has no routing to invent.
 **Recommendation: in-layout conditional now**, revisit the route-group pattern if
 the app grows past a single page. **Recommended; flagging because it's a real
 structural fork, not a mechanical port.**
+
+---
+
+## Q10 — CI Node/npm version ✅ (Node 24 / npm 11, pinned)
+
+A deploy broke when `@tailwindcss/oxide-wasm32-wasi` (Tailwind v4's WASM fallback)
+pulled `@emnapi/core`/`runtime` as optional peer deps: **npm 10 pins them as
+top-level lockfile nodes; npm 11 prunes them.** A lockfile regenerated under one
+npm major then fails `npm ci` under the other. CI was on Node 22 (npm 10) while
+local dev was on Node 24 (npm 11) — so a locally-passing lockfile broke in CI.
+
+**Options**
+- **Standardize on Node 24 / npm 11** *(chosen)* — bump both workflows to Node 24,
+  pin via root `.nvmrc`, keep the npm-11 lockfile.
+- **Standardize on Node 22 / npm 10** — keep CI as-is, commit the npm-10 lockfile
+  (the extra `@emnapi` nodes). Works, but trails the current Node LTS.
+
+**Tradeoff.** Either is internally consistent; the bug only appears when the two
+mix. Node 24 is current, matches the dev machines, and `.nvmrc` makes the pin
+explicit so future lockfile regens don't silently reintroduce the split.
+
+**Recommendation: Node 24 / npm 11, pinned.** **Decided.** The takeaway for
+contributors: regenerate the lockfile with the Node version in `.nvmrc`, not
+whatever `node` happens to be on PATH.
