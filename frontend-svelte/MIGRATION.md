@@ -300,7 +300,8 @@ The S3 + CloudFront story stayed nearly identical. **No infra/Terraform changes.
   must be served `no-cache` — otherwise CloudFront pins a year-old `sw.js` and
   `autoUpdate` can never ship a new version. Content-hashed assets
   (`_app/immutable/*`, `workbox-*.js`) stay immutable.
-- **Node 20 → 22** in CI (Vite 8 wants ≥20.19 / ≥22.12).
+- **Node 24 / npm 11** in CI (Vite 8 wants ≥20.19 / ≥22.12; the repo pins
+  Node 24 via `.nvmrc` so local and CI share one npm major — see DECISIONS.md Q10).
 - Dropped the unused `VITE_API_BASE` env (api.js hardcodes `/api`, same as React).
 
 Backend, API Gateway, the `/api/*` CloudFront behavior, and cookie auth: untouched.

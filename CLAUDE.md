@@ -107,7 +107,7 @@ Terraform in `infra/` manages Lambda, API Gateway, DynamoDB, S3 (two buckets: do
 ### CI/CD
 
 - `test.yml` — runs on PRs: `pytest` + lints the React app in `frontend/`. (Not yet updated for the Svelte app — a migration follow-up.)
-- `deploy.yml` — runs on push to `main`: builds the **Svelte** app in `frontend-svelte/` (Node 22) and syncs `build/` to S3 with PWA-aware cache-control, packages the Lambda zip, deploys via AWS CLI, invalidates CloudFront. No Terraform changes were needed — the SPA fallback emits `index.html` to match existing CloudFront 404 behavior.
+- `deploy.yml` — runs on push to `main`: builds the **Svelte** app in `frontend-svelte/` (Node 24 / npm 11) and syncs `build/` to S3 with PWA-aware cache-control, packages the Lambda zip, deploys via AWS CLI, invalidates CloudFront. No Terraform changes were needed — the SPA fallback emits `index.html` to match existing CloudFront 404 behavior.
 
 ## Environment Variables
 
