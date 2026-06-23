@@ -15,16 +15,25 @@ class DiscussRequest(BaseModel):
     session_id: str
     mode: str = "voice"        # "voice" | "text"
     provider: str = "anthropic"
+    voice_id: str | None = None
+
+@router.get("/{doc_id}/content")
+def doc_content(doc_id: str):
+    doc = get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404)
+    return {"content": fetch_document(doc["s3_key"])}
 
 @router.post("/{doc_id}/summarize")
-async def summarize(doc_id: str, provider: str = "anthropic"):
+async def summarize(doc_id: str, provider: str = "anthropic", voice_id: str | None = None):
     doc = get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404)
 
+    meta = None
     if not doc.get("summary"):
         content = fetch_document(doc["s3_key"])
-        summary = await chat(
+        summary, meta = await chat(
             messages=[{"role": "user", "content": f"Summarize this document concisely:\n\n{content}"}],
             provider=provider,
         )
@@ -32,11 +41,11 @@ async def summarize(doc_id: str, provider: str = "anthropic"):
     else:
         summary = doc["summary"]
 
-    audio_url = synthesize_to_url(summary)
-    return {"summary": summary, "audio_url": audio_url}
+    audio_url = synthesize_to_url(summary, voice_id)
+    return {"summary": summary, "audio_url": audio_url, "meta": meta}
 
 @router.get("/{doc_id}/read")
-def read_doc(doc_id: str):
+def read_doc(doc_id: str, voice_id: str | None = None):
     doc = get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404)
@@ -45,7 +54,7 @@ def read_doc(doc_id: str):
     content_for_tts = content[:MAX_TTS_CHARS]
     if len(content) > MAX_TTS_CHARS:
         content_for_tts += "\n\n[Document truncated for audio. Use Summarize for full overview.]"
-    audio_url = synthesize_to_url(content_for_tts)
+    audio_url = synthesize_to_url(content_for_tts, voice_id)
     return {"audio_url": audio_url, "truncated": len(content) > MAX_TTS_CHARS}
 
 @router.post("/{doc_id}/discuss")
@@ -61,10 +70,10 @@ async def discuss(doc_id: str, req: DiscussRequest):
     messages.append({"role": "user", "content": req.message})
 
     system = f"{SYSTEM_PROMPT}\n\n--- DOCUMENT ---\n{content}\n--- END DOCUMENT ---"
-    reply = await chat(messages=messages, system=system, provider=req.provider)
+    reply, meta = await chat(messages=messages, system=system, provider=req.provider)
 
     add_message(req.session_id, doc_id, "user", req.message, req.mode)
     add_message(req.session_id, doc_id, "assistant", reply, req.mode)
 
-    audio_url = synthesize_to_url(reply) if req.mode == "voice" else None
-    return {"reply": reply, "audio_url": audio_url}
+    audio_url = synthesize_to_url(reply, req.voice_id) if req.mode == "voice" else None
+    return {"reply": reply, "audio_url": audio_url, "meta": meta}

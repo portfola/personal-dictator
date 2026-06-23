@@ -55,6 +55,8 @@
 
 	// `const text = result?... ` computed in render → $derived (memoized).
 	let text = $derived(result?.summary || result?.text || '');
+	// Per-request model/usage info (present on summarize/discuss, not on read).
+	let meta = $derived(result?.meta || null);
 </script>
 
 <div class="bg-slate-900 border-t border-slate-700 px-5 py-6">
@@ -105,5 +107,14 @@
 
 	{#if mode === 'text' && text}
 		<p class="mt-4 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+	{/if}
+
+	{#if meta}
+		<details class="mt-5 text-xs text-slate-500">
+			<summary class="cursor-pointer select-none hover:text-slate-300">ⓘ details</summary>
+			<p class="mt-1 font-mono">
+				{meta.provider} · {meta.model} · {meta.input_tokens}/{meta.output_tokens} tok · {meta.latency_ms} ms
+			</p>
+		</details>
 	{/if}
 </div>

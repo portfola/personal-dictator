@@ -4,18 +4,24 @@ import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
 @pytest.mark.asyncio
-async def test_chat_anthropic_returns_string():
+async def test_chat_anthropic_returns_text_and_meta():
     mock_response = MagicMock()
     mock_response.content = [MagicMock(text="Here is the summary.")]
+    mock_response.model = "claude-test"
+    mock_response.usage = MagicMock(input_tokens=12, output_tokens=34)
     with patch("services.ai.anthropic_client") as mock_client:
         mock_client.messages.create = AsyncMock(return_value=mock_response)
         from services.ai import chat
-        result = await chat(
+        text, meta = await chat(
             messages=[{"role": "user", "content": "Summarize this."}],
             provider="anthropic"
         )
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert isinstance(text, str) and len(text) > 0
+    assert meta["provider"] == "anthropic"
+    assert meta["model"] == "claude-test"
+    assert meta["input_tokens"] == 12
+    assert meta["output_tokens"] == 34
+    assert "latency_ms" in meta
 
 @pytest.mark.asyncio
 async def test_unknown_provider_raises():

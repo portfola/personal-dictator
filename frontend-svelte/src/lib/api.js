@@ -8,10 +8,16 @@ const BASE = '/api';
 // Send the session cookie with every request.
 const opts = (o = {}) => ({ credentials: 'include', ...o });
 
-const handle = (r) => {
+const handle = async (r) => {
 	if (r.status === 401) {
 		window.location.href = `${BASE}/auth/login`;
 		throw new Error('Not authenticated');
+	}
+	if (!r.ok) {
+		// Surface backend failures as thrown errors so callers can show them,
+		// instead of silently returning an error body shaped like a result.
+		const detail = await r.json().catch(() => null);
+		throw new Error(detail?.detail || `Request failed (${r.status})`);
 	}
 	return r.json();
 };
@@ -39,10 +45,18 @@ export const uploadDoc = (file) => {
 export const deleteDoc = (id) =>
 	fetch(`${BASE}/library/${id}`, opts({ method: 'DELETE' })).then(handle);
 
-export const summarize = (id, provider = 'anthropic') =>
-	fetch(`${BASE}/docs/${id}/summarize?provider=${provider}`, opts({ method: 'POST' })).then(handle);
+export const getDocContent = (id) => fetch(`${BASE}/docs/${id}/content`, opts()).then(handle);
 
-export const readDoc = (id) => fetch(`${BASE}/docs/${id}/read`, opts()).then(handle);
+export const getVoices = () => fetch(`${BASE}/voices`, opts()).then(handle);
+
+// `voiceId` is optional — when empty the backend falls back to its default voice.
+const voiceParam = (voiceId) => (voiceId ? `&voice_id=${encodeURIComponent(voiceId)}` : '');
+
+export const summarize = (id, provider = 'anthropic', voiceId = '') =>
+	fetch(`${BASE}/docs/${id}/summarize?provider=${provider}${voiceParam(voiceId)}`, opts({ method: 'POST' })).then(handle);
+
+export const readDoc = (id, voiceId = '') =>
+	fetch(`${BASE}/docs/${id}/read?_=1${voiceParam(voiceId)}`, opts()).then(handle);
 
 export const discuss = (id, body) =>
 	fetch(

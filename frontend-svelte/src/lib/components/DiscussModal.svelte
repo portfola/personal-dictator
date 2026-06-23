@@ -5,6 +5,7 @@
 	import { createSpeechInput } from '$lib/speech.svelte.js';
 	import { discuss } from '$lib/api.js';
 	import { provider } from '$lib/provider.svelte.js';
+	import { voice } from '$lib/voice.svelte.js';
 
 	let { doc, onClose } = $props();
 
@@ -13,6 +14,7 @@
 	let input = $state('');
 	let loading = $state(false);
 	let playing = $state(false);
+	let error = $state(null);
 
 	// `useRef(uuidv4())` → a plain `const`. The script runs once, so a const is
 	// already "stable for the component's lifetime" — that's all useRef bought us.
@@ -34,15 +36,27 @@
 		// after the await below — no functional-updater dance.
 		messages = [...messages, { role: 'user', content: text, mode: currentMode }];
 		loading = true;
+		error = null;
 
-		const data = await discuss(doc.id, {
-			message: text,
-			session_id: sessionId,
-			mode: currentMode,
-			provider: provider.value
-		});
+		let data;
+		try {
+			data = await discuss(doc.id, {
+				message: text,
+				session_id: sessionId,
+				mode: currentMode,
+				provider: provider.value,
+				voice_id: voice.value || null
+			});
+		} catch (e) {
+			error = e.message;
+			loading = false;
+			return;
+		}
 
-		messages = [...messages, { role: 'assistant', content: data.reply, mode: currentMode }];
+		messages = [
+			...messages,
+			{ role: 'assistant', content: data.reply, mode: currentMode, meta: data.meta }
+		];
 		loading = false;
 
 		if (currentMode === 'voice' && data.audio_url && audioEl) {
@@ -107,7 +121,7 @@
 	<!-- Conversation -->
 	<div class="flex-1 overflow-y-auto px-4 py-2 space-y-3">
 		{#each messages as m, i (i)}
-			<div class="flex {m.role === 'user' ? 'justify-end' : 'justify-start'}">
+			<div class="flex flex-col {m.role === 'user' ? 'items-end' : 'items-start'}">
 				<div
 					class="max-w-xs md:max-w-md rounded-2xl px-4 py-3 text-sm leading-relaxed {m.role ===
 					'user'
@@ -116,12 +130,27 @@
 				>
 					{m.content}
 				</div>
+				{#if m.meta}
+					<details class="mt-1 text-xs text-slate-500">
+						<summary class="cursor-pointer select-none hover:text-slate-300">ⓘ details</summary>
+						<p class="mt-1 font-mono">
+							{m.meta.provider} · {m.meta.model} · {m.meta.input_tokens}/{m.meta.output_tokens} tok · {m.meta.latency_ms} ms
+						</p>
+					</details>
+				{/if}
 			</div>
 		{/each}
 		{#if loading}
 			<div class="flex justify-start">
 				<div class="bg-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-400 animate-pulse">
 					Thinking…
+				</div>
+			</div>
+		{/if}
+		{#if error}
+			<div class="flex justify-start">
+				<div class="bg-red-950/60 border border-red-800 rounded-2xl px-4 py-3 text-sm text-red-300">
+					{error}
 				</div>
 			</div>
 		{/if}
