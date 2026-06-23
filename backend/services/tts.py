@@ -65,18 +65,27 @@ def speakable_text(text: str) -> str:
     return t.strip()
 
 
-def synthesize_to_url(text: str) -> str:
+def list_voices() -> list[dict]:
+    """Return the ElevenLabs voices available on this account as {id, name}."""
+    return [
+        {"id": v.voice_id, "name": v.name}
+        for v in client.voices.get_all().voices
+    ]
+
+
+def synthesize_to_url(text: str, voice_id: str | None = None) -> str:
     """
     Synthesize text to speech. Returns a presigned S3 URL.
     Audio streams directly from S3 to browser — never passes through Lambda.
     """
+    voice_id = voice_id or VOICE_ID
     clean = speakable_text(text)
-    # Include speed in the cache key so changing it invalidates old audio.
-    key = audio_cache_key(f"v2|s={VOICE_SPEED}|{clean}")
+    # Include voice + speed in the cache key so changing either invalidates old audio.
+    key = audio_cache_key(f"v2|voice={voice_id}|s={VOICE_SPEED}|{clean}")
 
     if not audio_exists(key):
         audio = client.text_to_speech.convert(
-            voice_id=VOICE_ID,
+            voice_id=voice_id,
             text=clean,
             model_id="eleven_turbo_v2",
             output_format="mp3_44100_128",

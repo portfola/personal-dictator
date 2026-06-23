@@ -4,6 +4,7 @@
 	import DocRow from '$lib/components/DocRow.svelte';
 	import DiscussModal from '$lib/components/DiscussModal.svelte';
 	import ProviderToggle from '$lib/components/ProviderToggle.svelte';
+	import VoiceSelect from '$lib/components/VoiceSelect.svelte';
 	import { getLibrary, uploadDoc, deleteDoc } from '$lib/api.js';
 
 	let docs = $state([]);
@@ -50,6 +51,7 @@
 				<h1 class="text-xl font-semibold tracking-tight">Personal Dictator</h1>
 			</div>
 			<div class="flex items-center gap-3">
+				<VoiceSelect />
 				<ProviderToggle />
 				<label
 					class="flex items-center gap-2 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 rounded-lg text-sm font-medium cursor-pointer transition-colors"
