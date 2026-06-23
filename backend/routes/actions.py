@@ -55,7 +55,7 @@ async def discuss(doc_id: str, req: DiscussRequest):
         raise HTTPException(status_code=404)
 
     content = fetch_document(doc["s3_key"])
-    history = get_messages(req.session_id)
+    history = get_messages(doc_id, req.session_id)
 
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     messages.append({"role": "user", "content": req.message})

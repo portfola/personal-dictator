@@ -55,7 +55,26 @@ def update_summary(doc_id: str, summary: str):
     )
 
 def delete_document(doc_id: str):
-    get_table().delete_item(Key={"pk": f"DOC#{doc_id}", "sk": "META"})
+    # The doc's META item and all its chat messages share the DOC#{id} partition,
+    # so one query collects everything to remove. Paginate in case a long
+    # conversation spills past a single 1 MB query page.
+    table = get_table()
+    key = {"pk": f"DOC#{doc_id}"}
+    kwargs = {
+        "KeyConditionExpression": Key("pk").eq(key["pk"]),
+        "ProjectionExpression": "pk, sk",
+    }
+    items = []
+    while True:
+        page = table.query(**kwargs)
+        items.extend(page.get("Items", []))
+        if "LastEvaluatedKey" not in page:
+            break
+        kwargs["ExclusiveStartKey"] = page["LastEvaluatedKey"]
+
+    with table.batch_writer() as batch:
+        for it in items:
+            batch.delete_item(Key={"pk": it["pk"], "sk": it["sk"]})
 
 
 # --- Messages ---
@@ -63,13 +82,16 @@ def delete_document(doc_id: str):
 def add_message(session_id: str, doc_id: str, role: str, content: str, mode: str) -> dict:
     msg_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    # Messages live in their document's partition (DOC#{id}) so a single query
+    # gathers a doc + all its chats — see delete_document. The session_id leads the
+    # sort key so one conversation is still readable by prefix (get_messages), and
+    # the trailing timestamp keeps that prefix in chronological order.
     item = {
-        "pk": f"SESSION#{session_id}",
-        "sk": f"MSG#{now}#{msg_id}",
-        "gsi1pk": "MSG",
-        "gsi1sk": now,
+        "pk": f"DOC#{doc_id}",
+        "sk": f"MSG#{session_id}#{now}#{msg_id}",
         "id": msg_id,
         "doc_id": doc_id,
+        "session_id": session_id,
         "role": role,
         "content": content,
         "mode": mode,
@@ -78,9 +100,10 @@ def add_message(session_id: str, doc_id: str, role: str, content: str, mode: str
     get_table().put_item(Item=item)
     return item
 
-def get_messages(session_id: str) -> list[dict]:
+def get_messages(doc_id: str, session_id: str) -> list[dict]:
     response = get_table().query(
-        KeyConditionExpression=Key("pk").eq(f"SESSION#{session_id}") & Key("sk").begins_with("MSG#"),
+        KeyConditionExpression=Key("pk").eq(f"DOC#{doc_id}")
+        & Key("sk").begins_with(f"MSG#{session_id}#"),
         ScanIndexForward=True,
     )
     return response.get("Items", [])
