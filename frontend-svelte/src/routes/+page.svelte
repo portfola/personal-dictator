@@ -4,7 +4,7 @@
 	import DocRow from '$lib/components/DocRow.svelte';
 	import DiscussModal from '$lib/components/DiscussModal.svelte';
 	import ProviderToggle from '$lib/components/ProviderToggle.svelte';
-	import { getLibrary, uploadDoc } from '$lib/api.js';
+	import { getLibrary, uploadDoc, deleteDoc } from '$lib/api.js';
 
 	let docs = $state([]);
 	let discussDoc = $state(null);
@@ -30,6 +30,14 @@
 		await load();
 		uploading = false;
 		input.value = '';
+	}
+
+	async function handleDelete(doc) {
+		if (!confirm(`Delete “${doc.title}”? This can't be undone.`)) return;
+		// Optimistic: drop the row immediately, then persist. The keyed #each makes
+		// this a clean removal; getLibrary() isn't re-fetched since we own the state.
+		docs = docs.filter((d) => d.id !== doc.id);
+		await deleteDoc(doc.id);
 	}
 </script>
 
@@ -63,7 +71,7 @@
 			</p>
 		{:else}
 			{#each docs as doc (doc.id)}
-				<DocRow {doc} onDiscuss={(d) => (discussDoc = d)} />
+				<DocRow {doc} onDiscuss={(d) => (discussDoc = d)} onDelete={handleDelete} />
 			{/each}
 		{/if}
 	</div>

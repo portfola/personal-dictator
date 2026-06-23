@@ -1,10 +1,10 @@
 <script>
-	import { Headphones, FileText, MessageCircle } from '@lucide/svelte';
+	import { Headphones, FileText, MessageCircle, Trash2 } from '@lucide/svelte';
 	import ActionCard from './ActionCard.svelte';
 	import { summarize, readDoc } from '$lib/api.js';
 	import { provider } from '$lib/provider.svelte.js';
 
-	let { doc, onDiscuss } = $props();
+	let { doc, onDiscuss, onDelete } = $props();
 
 	let active = $state(null); // 'read' | 'summarize' | null
 	let result = $state(null);
@@ -50,6 +50,13 @@
 					<Icon size={18} strokeWidth={1.5} />
 				</button>
 			{/each}
+			<button
+				onclick={() => onDelete(doc)}
+				aria-label="Delete"
+				class="text-slate-400 hover:text-red-400 transition-colors pl-2 border-l border-slate-700"
+			>
+				<Trash2 size={18} strokeWidth={1.5} />
+			</button>
 		</div>
 	</div>
 

@@ -73,8 +73,8 @@ API Gateway → Lambda (FastAPI + Mangum)
 ### DynamoDB single-table design
 
 - Documents: `pk=DOC#{id}`, `sk=META`
-- Chat messages: `pk=SESSION#{session_id}`, `sk=MSG#{iso_timestamp}#{msg_id}`
-- GSI `type-updatedAt-index` uses `gsi1pk` / `gsi1sk` — used to list all docs sorted by recency.
+- Chat messages: `pk=DOC#{id}`, `sk=MSG#{session_id}#{iso_timestamp}#{msg_id}` — messages share their document's partition (single-table item collection). Reading one conversation queries by the `MSG#{session_id}#` prefix; deleting a doc wipes META + all its messages in one partition query (`delete_document`).
+- GSI `type-updatedAt-index` uses `gsi1pk` / `gsi1sk` — used to list all docs sorted by recency. Only document items carry the GSI keys; messages do not.
 
 ### Frontend (Svelte — `frontend-svelte/`, current target)
 
