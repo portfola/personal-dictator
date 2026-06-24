@@ -1,6 +1,8 @@
+import logging
 import os
 import re
 from elevenlabs.client import ElevenLabs
+from elevenlabs.core.api_error import ApiError
 from elevenlabs.types.voice_settings import VoiceSettings
 from services.storage import audio_cache_key, audio_exists, upload_audio, get_audio_presigned_url
 from dotenv import load_dotenv
@@ -66,11 +68,20 @@ def speakable_text(text: str) -> str:
 
 
 def list_voices() -> list[dict]:
-    """Return the ElevenLabs voices available on this account as {id, name}."""
-    return [
-        {"id": v.voice_id, "name": v.name}
-        for v in client.voices.get_all().voices
-    ]
+    """Return the ElevenLabs voices available on this account as {id, name}.
+
+    Degrades gracefully: a TTS-only API key (missing the `voices_read`
+    permission) can still synthesize speech, so rather than 500 the whole
+    picker we fall back to the single configured default voice.
+    """
+    try:
+        return [
+            {"id": v.voice_id, "name": v.name}
+            for v in client.voices.get_all().voices
+        ]
+    except ApiError as e:
+        logging.warning("Could not list ElevenLabs voices (status=%s): %s", e.status_code, e.body)
+        return [{"id": VOICE_ID, "name": "Default"}]
 
 
 def synthesize_to_url(text: str, voice_id: str | None = None) -> str:
