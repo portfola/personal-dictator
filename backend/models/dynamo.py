@@ -1,6 +1,6 @@
 import boto3, os, uuid
 from datetime import datetime, timezone
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 TABLE_NAME = os.getenv("DYNAMODB_TABLE", "personal-dictator-documents")
 REGION = os.getenv("AWS_REGION_NAME", "us-east-1")
@@ -26,20 +26,29 @@ def create_document(title: str, filename: str, source: str, s3_key: str) -> dict
         "source": source,
         "s3_key": s3_key,
         "summary": None,
+        "status": "active",
         "created_at": now,
         "updated_at": now,
     }
     get_table().put_item(Item=item)
     return item
 
-def get_document(doc_id: str) -> dict | None:
+def get_document(doc_id: str, include_deleted: bool = False) -> dict | None:
     response = get_table().get_item(Key={"pk": f"DOC#{doc_id}", "sk": "META"})
-    return response.get("Item")
+    item = response.get("Item")
+    # A soft-deleted doc reads as gone to everything except the delete path itself,
+    # which passes include_deleted=True so it can still reach the s3_key to reap.
+    if item and not include_deleted and item.get("status") == "deleted":
+        return None
+    return item
 
 def list_documents() -> list[dict]:
+    # Hide soft-deleted docs. `ne` also matches items with no status attribute
+    # (pre-soft-delete records), so existing active docs stay visible.
     response = get_table().query(
         IndexName="type-updatedAt-index",
         KeyConditionExpression=Key("gsi1pk").eq("DOC"),
+        FilterExpression=Attr("status").ne("deleted"),
         ScanIndexForward=False,  # newest first
     )
     return response.get("Items", [])
@@ -54,7 +63,22 @@ def update_summary(doc_id: str, summary: str):
         },
     )
 
-def delete_document(doc_id: str):
+def mark_document_deleted(doc_id: str):
+    # Soft delete: flip status to "deleted". Durable and idempotent, it hides the
+    # doc from list_documents/get_document immediately while preserving the record
+    # (and its s3_key) so the S3 object stays traceable until purge confirms it gone.
+    # `status` is a DynamoDB reserved word, hence the #status name placeholder.
+    get_table().update_item(
+        Key={"pk": f"DOC#{doc_id}", "sk": "META"},
+        UpdateExpression="SET #status = :s, updated_at = :u",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={
+            ":s": "deleted",
+            ":u": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+
+def purge_document(doc_id: str):
     # The doc's META item and all its chat messages share the DOC#{id} partition,
     # so one query collects everything to remove. Paginate in case a long
     # conversation spills past a single 1 MB query page.
