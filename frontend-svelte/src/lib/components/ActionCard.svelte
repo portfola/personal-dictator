@@ -1,7 +1,8 @@
 <script>
-	import { untrack } from 'svelte';
+	import { untrack, onDestroy } from 'svelte';
 	import { X, Play } from '@lucide/svelte';
 	import ModeToggle from './ModeToggle.svelte';
+	import { claimPlayback, releasePlayback } from '$lib/audio.svelte.js';
 
 	let { doc, action, loading, result, onClose } = $props();
 
@@ -53,6 +54,12 @@
 		}
 	}
 
+	// Release the shared playback slot if this card is closed while sounding.
+	onDestroy(() => {
+		if (audioEl) audioEl.pause();
+		releasePlayback(audioEl);
+	});
+
 	// `const text = result?... ` computed in render → $derived (memoized).
 	let text = $derived(result?.summary || result?.text || '');
 	// Per-request model/usage info (present on summarize/discuss, not on read).
@@ -64,6 +71,8 @@
 		bind:this={audioEl}
 		preload="auto"
 		onplay={() => {
+			// Stop any other card's audio before this one takes over.
+			claimPlayback(audioEl);
 			playing = true;
 			blocked = false;
 		}}
@@ -106,7 +115,11 @@
 	{/if}
 
 	{#if mode === 'text' && text}
-		<p class="mt-4 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+		<p
+			class="mt-4 max-h-80 overflow-y-auto text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"
+		>
+			{text}
+		</p>
 	{/if}
 
 	{#if meta}
