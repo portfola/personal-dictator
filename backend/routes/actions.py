@@ -55,7 +55,7 @@ def read_doc(doc_id: str, voice_id: str | None = None):
     if len(content) > MAX_TTS_CHARS:
         content_for_tts += "\n\n[Document truncated for audio. Use Summarize for full overview.]"
     audio_url = synthesize_to_url(content_for_tts, voice_id)
-    return {"audio_url": audio_url, "truncated": len(content) > MAX_TTS_CHARS}
+    return {"text": content_for_tts, "audio_url": audio_url, "truncated": len(content) > MAX_TTS_CHARS}
 
 @router.post("/{doc_id}/discuss")
 async def discuss(doc_id: str, req: DiscussRequest):

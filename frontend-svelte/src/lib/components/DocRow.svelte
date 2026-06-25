@@ -71,7 +71,7 @@
 		<button
 			onclick={toggleExpand}
 			aria-expanded={expanded}
-			class="flex items-center gap-1.5 min-w-0 mr-4 text-left text-white font-medium text-sm hover:text-sky-300 transition-colors"
+			class="flex flex-1 items-center gap-1.5 min-w-0 mr-4 text-left text-white font-medium text-sm hover:text-sky-300 transition-colors"
 		>
 			<ChevronDown
 				size={15}
